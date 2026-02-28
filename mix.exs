@@ -19,7 +19,7 @@ defmodule Sunxi.MixProject do
       name: "Sunxi",
       source_url: "https://github.com/#{@github_org}/sunxi",
       docs: [
-        main: "Sunxi.FEL",
+        main: "readme",
         extras: ["README.md", "CHANGELOG.md"]
       ]
     ]
