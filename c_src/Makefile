@@ -7,7 +7,9 @@ PREFIX = $(MIX_APP_PATH)/priv
 # Dependencies to check via pkg-config
 DEPENDENCIES = libusb-1.0 zlib
 
-# macOS specific: dtc (which provides libfdt) is often not in pkg-config
+# Check for libfdt header
+# On macOS, it's often in Homebrew's dtc path
+# On Linux, it's usually in /usr/include
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
     DTC_PREFIX ?= /usr/local/opt/dtc
@@ -15,9 +17,10 @@ ifeq ($(UNAME_S),Darwin)
     LIBFDT_LIBS ?= -L$(DTC_PREFIX)/lib -lfdt
     CHECK_LIBFDT = ls $(DTC_PREFIX)/include/libfdt.h > /dev/null 2>&1 || (echo "Error: libfdt.h not found. Please install 'dtc' (brew install dtc)"; exit 1)
 else
-    # On Linux, we expect libfdt to be in pkg-config or standard paths
-    DEPENDENCIES += libfdt
-    CHECK_LIBFDT = true
+    # On Linux, check standard locations
+    LIBFDT_CFLAGS ?=
+    LIBFDT_LIBS ?= -lfdt
+    CHECK_LIBFDT = (ls /usr/include/libfdt.h > /dev/null 2>&1 || ls /usr/local/include/libfdt.h > /dev/null 2>&1) || (echo "Error: libfdt.h not found. Please install 'libfdt-dev' (sudo apt-get install libfdt-dev)"; exit 1)
 endif
 
 .PHONY: all clean check_deps install
