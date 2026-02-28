@@ -20,7 +20,7 @@ defmodule Sunxi.FELIntegrationTest do
   end
 
   test "read and write memory" do
-    # SRAM A1 address for R528/T113-S3
+    # SRAM A1 address for T113-S3
     address = 0x20000
     data = <<0xDE, 0xAD, 0xBE, 0xEF>>
 
