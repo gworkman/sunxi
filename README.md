@@ -48,17 +48,10 @@ Sunxi.FEL.write_memory(address, binary_data)
 Sunxi.FEL.read_memory(address, length)
 ```
 
-To load and execute bootloaders (for uboot, if the uboot and spl file are
-packaged togethe):
+To load and execute bootloaders (for U-Boot, if the U-Boot and SPL file are
+packaged together):
 
 ```elixir
 Sunxi.FEL.execute_spl("path/to/spl.bin")
 Sunxi.FEL.execute_uboot("path/to/u-boot.bin")
 ```
-
-## Implementation
-
-The library uses a `Port`-based execution model to interact with the compiled
-`sunxi-fel` binary. This ensures that hardware interaction occurs in a separate
-process from the Erlang VM. For testing purposes, the library includes a
-mockable executor behavior.

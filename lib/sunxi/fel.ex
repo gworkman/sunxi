@@ -14,6 +14,9 @@ defmodule Sunxi.FEL do
       {:ok, output} ->
         {:ok, parse_list(output)}
 
+      {:error, reason} when reason in ["", "\n"] ->
+        {:ok, []}
+
       {:error, reason} ->
         {:error, reason}
     end
@@ -38,10 +41,7 @@ defmodule Sunxi.FEL do
   """
   @spec read_memory(non_neg_integer(), non_neg_integer()) :: {:ok, binary()} | {:error, any()}
   def read_memory(address, size) do
-    # Using 'read' instead of 'dump' because 'dump' outputs to stdout
-    # and might be affected by terminal settings or encoding.
-    # 'read <address> <length> <file>' is more explicit.
-    temp_file = Path.join(System.tmp_dir!(), "sunxi_read_#{:erlang.unique_integer([:positive])}")
+    temp_file = create_temp_path()
 
     case exec(["read", format_address(address), to_string(size), temp_file]) do
       {:ok, _} ->
@@ -79,51 +79,16 @@ defmodule Sunxi.FEL do
 
   # --- Internal Helpers ---
 
-  defp exec(args, opts \\ []) do
-    executor = get_executor()
+  defp exec(args) do
     binary_path = get_binary_path()
 
-    if executor == Sunxi.FEL.SystemExecutor do
-      run_port(binary_path, args, opts)
-    else
-      # Fallback for MockExecutor in tests
-      case executor.cmd(binary_path, args, stderr_to_stdout: true) do
-        {output, 0} ->
-          {:ok, output}
+    case System.cmd(binary_path, args, stderr_to_stdout: true) do
+      {output, 0} ->
+        {:ok, output}
 
-        {output, status} ->
-          {:error, "Command failed with exit code #{status}: #{String.trim(output)}"}
-      end
+      {output, _status} ->
+        {:error, output}
     end
-  end
-
-  defp run_port(binary_path, args, _opts) do
-    port =
-      Port.open({:spawn_executable, binary_path}, [
-        :binary,
-        :exit_status,
-        :stderr_to_stdout,
-        args: args
-      ])
-
-    collect_output(port, "")
-  end
-
-  defp collect_output(port, acc) do
-    receive do
-      {^port, {:data, data}} ->
-        collect_output(port, acc <> data)
-
-      {^port, {:exit_status, 0}} ->
-        {:ok, acc}
-
-      {^port, {:exit_status, status}} ->
-        {:error, "Command failed with exit code #{status}: #{String.trim(acc)}"}
-    end
-  end
-
-  defp get_executor do
-    Application.get_env(:sunxi, :executor, Sunxi.FEL.SystemExecutor)
   end
 
   defp get_binary_path do
@@ -150,11 +115,15 @@ defmodule Sunxi.FEL do
   end
 
   defp create_temp_file(data) do
-    path = Path.join(System.tmp_dir!(), "sunxi_write_#{:erlang.unique_integer([:positive])}")
+    path = create_temp_path()
 
     case File.write(path, data) do
       :ok -> {:ok, path}
       error -> error
     end
+  end
+
+  defp create_temp_path do
+    Path.join(System.tmp_dir!(), "sunxi_#{:erlang.unique_integer([:positive])}")
   end
 end
