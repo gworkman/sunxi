@@ -8,7 +8,7 @@ defmodule Sunxi.MixProject do
     [
       app: :sunxi,
       version: @version,
-      elixir: "~> 1.18",
+      elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       compilers: Mix.compilers() ++ [:elixir_make],
       make_cwd: "c_src",
