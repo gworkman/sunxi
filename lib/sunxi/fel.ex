@@ -14,7 +14,7 @@ defmodule Sunxi.FEL do
       {:ok, output} ->
         {:ok, parse_list(output)}
 
-      {:error, reason} when reason in ["", "\n"] ->
+      {:error, :no_device_connected} ->
         {:ok, []}
 
       {:error, reason} ->
@@ -85,6 +85,9 @@ defmodule Sunxi.FEL do
     case System.cmd(binary_path, args, stderr_to_stdout: true) do
       {output, 0} ->
         {:ok, output}
+
+      {"ERROR: Allwinner USB FEL device not found!\n", 1} ->
+        {:error, :no_device_connected}
 
       {output, _status} ->
         {:error, output}

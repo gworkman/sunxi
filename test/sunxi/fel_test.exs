@@ -11,22 +11,22 @@ defmodule Sunxi.FELTest do
     end
 
     test "write_memory/2 returns error" do
-      assert {:error, "ERROR: Allwinner USB FEL device not found!\n"} ==
+      assert {:error, :no_device_connected} ==
                FEL.write_memory(0x20000, <<1, 2, 3, 4>>)
     end
 
     test "read_memory/2 returns error" do
-      assert {:error, "ERROR: Allwinner USB FEL device not found!\n"} ==
+      assert {:error, :no_device_connected} ==
                FEL.read_memory(0x20000, 4)
     end
 
     test "execute_spl/1 returns error" do
-      assert {:error, "ERROR: Allwinner USB FEL device not found!\n"} ==
+      assert {:error, :no_device_connected} ==
                FEL.execute_spl("non_existent_file.bin")
     end
 
     test "execute_uboot/1 returns error" do
-      assert {:error, "ERROR: Allwinner USB FEL device not found!\n"} ==
+      assert {:error, :no_device_connected} ==
                FEL.execute_uboot("non_existent_file.bin")
     end
   end

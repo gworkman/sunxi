@@ -2,11 +2,12 @@ defmodule Sunxi.MixProject do
   use Mix.Project
 
   @github_org "gworkman"
+  @version "0.1.0"
 
   def project do
     [
       app: :sunxi,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       compilers: Mix.compilers() ++ [:elixir_make],
