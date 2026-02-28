@@ -14,7 +14,7 @@ defmodule Sunxi.FEL do
       {:ok, output} ->
         {:ok, parse_list(output)}
 
-      {:error, :no_device_connected} ->
+      {:error, output} when output in ["", "\n"] ->
         {:ok, []}
 
       {:error, reason} ->
