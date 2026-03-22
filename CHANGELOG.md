@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.2 (2026-03-22)
+
+- Allow sunxi-fel binary path to be configured in Application env (useful for
+  escripts)
+
 ## v0.1.1 (2026-03-22)
 
 - Fix how the sunxi-fel binary path is loaded at runtime
