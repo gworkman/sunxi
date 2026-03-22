@@ -95,9 +95,12 @@ defmodule Sunxi.FEL do
   end
 
   defp get_binary_path do
-    :sunxi
-    |> :code.priv_dir()
-    |> Path.join("bin/#{@binary_name}")
+    default_bin_path =
+      :sunxi
+      |> :code.priv_dir()
+      |> Path.join("bin/#{@binary_name}")
+
+    Application.get_env(:sunxi, :sunxi_fel_path) || default_bin_path
   end
 
   defp format_address(address) do
