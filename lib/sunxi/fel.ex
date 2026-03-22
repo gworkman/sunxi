@@ -95,7 +95,9 @@ defmodule Sunxi.FEL do
   end
 
   defp get_binary_path do
-    Application.app_dir(:sunxi, Path.join("priv", "bin/#{@binary_name}"))
+    :sunxi
+    |> :code.priv_dir()
+    |> Path.join("bin/#{@binary_name}")
   end
 
   defp format_address(address) do
