@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.4 (2026-03-25)
+
+- Improve docs
+- Fix broken tests
+
 ## v0.1.3 (2026-03-25)
 
 - Created a `%Sunxi.Device{}` struct
