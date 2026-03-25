@@ -3,19 +3,21 @@ defmodule Sunxi.FEL do
   An Elixir wrapper for the `sunxi-fel` utility.
   """
 
+  alias Sunxi.Device
+
   @binary_name "sunxi-fel"
 
   @doc """
   Lists connected Allwinner devices in FEL mode.
   """
-  @spec list_devices() :: {:ok, [map()]} | {:error, any()}
+  @spec list_devices() :: [Device.t()] | {:error, any()}
   def list_devices do
     case exec(["--list"]) do
       {:ok, output} ->
-        {:ok, parse_list(output)}
+        parse_list(output)
 
       {:error, output} when output in ["", "\n"] ->
-        {:ok, []}
+        []
 
       {:error, reason} ->
         {:error, reason}
@@ -25,10 +27,10 @@ defmodule Sunxi.FEL do
   @doc """
   Writes data to the device's memory at the specified address.
   """
-  @spec write_memory(non_neg_integer(), binary()) :: :ok | {:error, any()}
-  def write_memory(address, data) do
+  @spec write_memory(non_neg_integer(), binary(), keyword()) :: :ok | {:error, any()}
+  def write_memory(address, data, opts \\ []) do
     with {:ok, temp_file} <- create_temp_file(data),
-         {:ok, _} <- exec(["write", format_address(address), temp_file]) do
+         {:ok, _} <- exec(["write", format_address(address), temp_file], opts) do
       File.rm(temp_file)
       :ok
     else
@@ -39,11 +41,12 @@ defmodule Sunxi.FEL do
   @doc """
   Reads data from the device's memory at the specified address.
   """
-  @spec read_memory(non_neg_integer(), non_neg_integer()) :: {:ok, binary()} | {:error, any()}
-  def read_memory(address, size) do
+  @spec read_memory(non_neg_integer(), non_neg_integer(), keyword()) ::
+          {:ok, binary()} | {:error, any()}
+  def read_memory(address, size, opts \\ []) do
     temp_file = create_temp_path()
 
-    case exec(["read", format_address(address), to_string(size), temp_file]) do
+    case exec(["read", format_address(address), to_string(size), temp_file], opts) do
       {:ok, _} ->
         data = File.read!(temp_file)
         File.rm(temp_file)
@@ -58,9 +61,9 @@ defmodule Sunxi.FEL do
   @doc """
   Loads and executes an SPL image.
   """
-  @spec execute_spl(String.t()) :: :ok | {:error, any()}
-  def execute_spl(path) do
-    case exec(["spl", path]) do
+  @spec execute_spl(String.t(), keyword()) :: :ok | {:error, any()}
+  def execute_spl(path, opts \\ []) do
+    case exec(["spl", path], opts) do
       {:ok, _} -> :ok
       {:error, reason} -> {:error, reason}
     end
@@ -69,9 +72,9 @@ defmodule Sunxi.FEL do
   @doc """
   Loads and executes U-Boot.
   """
-  @spec execute_uboot(String.t()) :: :ok | {:error, any()}
-  def execute_uboot(path) do
-    case exec(["uboot", path]) do
+  @spec execute_uboot(String.t(), keyword()) :: :ok | {:error, any()}
+  def execute_uboot(path, opts \\ []) do
+    case exec(["uboot", path], opts) do
       {:ok, _} -> :ok
       {:error, reason} -> {:error, reason}
     end
@@ -79,8 +82,9 @@ defmodule Sunxi.FEL do
 
   # --- Internal Helpers ---
 
-  defp exec(args) do
+  defp exec(args, opts \\ []) do
     binary_path = get_binary_path()
+    args = build_args(args, opts)
 
     case System.cmd(binary_path, args, stderr_to_stdout: true) do
       {output, 0} ->
@@ -91,6 +95,16 @@ defmodule Sunxi.FEL do
 
       {output, _status} ->
         {:error, output}
+    end
+  end
+
+  defp build_args(args, opts) do
+    case opts[:device] do
+      %Device{sid: sid} when is_binary(sid) ->
+        ["--sid", sid | args]
+
+      _ ->
+        args
     end
   end
 
@@ -113,7 +127,7 @@ defmodule Sunxi.FEL do
     |> Enum.map(fn line ->
       case Regex.run(~r/USB device (\d+):(\d+)\s+Allwinner\s+([^\s]+)\s+([0-9a-fA-F:]+)/, line) do
         [_, bus, device, model, sid] ->
-          %{bus: bus, device: device, model: model, sid: sid}
+          %Device{bus: bus, device: device, model: model, sid: sid}
 
         _ ->
           nil

@@ -19,12 +19,14 @@ defmodule Sunxi.FELIntegrationTest do
     end
   end
 
-  test "read and write memory" do
+  test "read and write memory with device option" do
     # SRAM A1 address for T113-S3
     address = 0x20000
-    data = <<0xDE, 0xAD, 0xBE, 0xEF>>
+    data = <<0xBE, 0xEF, 0xCA, 0xFE>>
 
-    assert :ok = FEL.write_memory(address, data)
-    assert {:ok, ^data} = FEL.read_memory(address, 4)
+    {:ok, [device | _]} = FEL.list_devices()
+
+    assert :ok = FEL.write_memory(address, data, device: device)
+    assert {:ok, ^data} = FEL.read_memory(address, 4, device: device)
   end
 end
