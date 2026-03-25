@@ -7,7 +7,7 @@ defmodule Sunxi.FELTest do
 
   describe "when no device is connected" do
     test "list_devices/0 returns empty list" do
-      assert {:ok, []} == FEL.list_devices()
+      assert [] == FEL.list_devices()
     end
 
     test "write_memory/2 returns error" do

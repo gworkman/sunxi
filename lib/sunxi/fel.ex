@@ -26,6 +26,10 @@ defmodule Sunxi.FEL do
 
   @doc """
   Writes data to the device's memory at the specified address.
+
+  ## Options
+
+    * `:device` - A `Sunxi.Device` struct representing the target device.
   """
   @spec write_memory(non_neg_integer(), binary(), keyword()) :: :ok | {:error, any()}
   def write_memory(address, data, opts \\ []) do
@@ -40,6 +44,10 @@ defmodule Sunxi.FEL do
 
   @doc """
   Reads data from the device's memory at the specified address.
+
+  ## Options
+
+    * `:device` - A `Sunxi.Device` struct representing the target device.
   """
   @spec read_memory(non_neg_integer(), non_neg_integer(), keyword()) ::
           {:ok, binary()} | {:error, any()}
@@ -60,6 +68,10 @@ defmodule Sunxi.FEL do
 
   @doc """
   Loads and executes an SPL image.
+
+  ## Options
+
+    * `:device` - A `Sunxi.Device` struct representing the target device.
   """
   @spec execute_spl(String.t(), keyword()) :: :ok | {:error, any()}
   def execute_spl(path, opts \\ []) do
@@ -71,6 +83,10 @@ defmodule Sunxi.FEL do
 
   @doc """
   Loads and executes U-Boot.
+
+  ## Options
+
+    * `:device` - A `Sunxi.Device` struct representing the target device.
   """
   @spec execute_uboot(String.t(), keyword()) :: :ok | {:error, any()}
   def execute_uboot(path, opts \\ []) do
