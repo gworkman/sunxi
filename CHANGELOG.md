@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.3 (2026-03-25)
+
+- Created a `%Sunxi.Device{}` struct
+- `Sunxi.FEL.list_devices/0` now returns a list of devices (or empty list), not
+  `{:ok, devices}`
+- Device-specific `Sunxi.FEL` functions now accept keyword opts, particularly
+  the `device: %Sunxi.Device{}` option
+
 ## v0.1.2 (2026-03-22)
 
 - Allow sunxi-fel binary path to be configured in Application env (useful for
