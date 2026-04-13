@@ -31,6 +31,8 @@ defmodule Sunxi.FEL do
 
     * `:device` - A `Sunxi.Device` struct representing the target device.
     * `:on_progress` - A callback function that receives progress updates.
+      The callback receives a map: `%{percentage: integer, speed: float, eta: String.t | nil}`.
+      `speed` is in kB/s.
   """
   @spec write_memory(non_neg_integer(), binary(), keyword()) :: :ok | {:error, any()}
   def write_memory(address, data, opts \\ []) do
@@ -78,6 +80,8 @@ defmodule Sunxi.FEL do
 
     * `:device` - A `Sunxi.Device` struct representing the target device.
     * `:on_progress` - A callback function that receives progress updates.
+      The callback receives a map: `%{percentage: integer, speed: float, eta: String.t | nil}`.
+      `speed` is in kB/s.
   """
   @spec execute_spl(String.t(), keyword()) :: :ok | {:error, any()}
   def execute_spl(path, opts \\ []) do
@@ -97,6 +101,8 @@ defmodule Sunxi.FEL do
 
     * `:device` - A `Sunxi.Device` struct representing the target device.
     * `:on_progress` - A callback function that receives progress updates.
+      The callback receives a map: `%{percentage: integer, speed: float, eta: String.t | nil}`.
+      `speed` is in kB/s.
   """
   @spec execute_uboot(String.t(), keyword()) :: :ok | {:error, any()}
   def execute_uboot(path, opts \\ []) do
@@ -130,24 +136,33 @@ defmodule Sunxi.FEL do
         collect_port_output(port, new_buffer, new_output_acc, opts)
 
       {^port, {:exit_status, 0}} ->
-        {:ok, output_acc}
+        {_new_buffer, new_output_acc} = process_data(buffer, output_acc, opts, true)
+        {:ok, new_output_acc}
 
       {^port, {:exit_status, 1}} ->
-        if String.contains?(output_acc, "ERROR: Allwinner USB FEL device not found!") do
+        {_new_buffer, new_output_acc} = process_data(buffer, output_acc, opts, true)
+
+        if String.contains?(new_output_acc, "ERROR: Allwinner USB FEL device not found!") do
           {:error, :no_device_connected}
         else
-          {:error, output_acc}
+          {:error, new_output_acc}
         end
 
       {^port, {:exit_status, _status}} ->
-        {:error, output_acc}
+        {_new_buffer, new_output_acc} = process_data(buffer, output_acc, opts, true)
+        {:error, new_output_acc}
     end
   end
 
-  defp process_data(data, output_acc, opts) do
+  defp process_data(data, output_acc, opts, final? \\ false) do
     case find_last_delimiter(data) do
       nil ->
-        {data, output_acc}
+        if final? and data != "" do
+          {_segments, new_output_acc} = process_segments([data], output_acc, opts)
+          {"", new_output_acc}
+        else
+          {data, output_acc}
+        end
 
       index ->
         {to_process, rest} = String.split_at(data, index + 1)
@@ -157,20 +172,31 @@ defmodule Sunxi.FEL do
           |> String.split(~r/\r|\n/, trim: true)
           |> Enum.reject(&(&1 == ""))
 
-        new_output_acc =
-          Enum.reduce(segments, output_acc, fn segment, acc ->
-            case parse_progress(segment) do
-              {:ok, progress} ->
-                if callback = opts[:on_progress], do: callback.(progress)
-                acc
+        {_, new_output_acc} = process_segments(segments, output_acc, opts)
 
-              :error ->
-                acc <> segment <> "\n"
-            end
-          end)
-
-        {rest, new_output_acc}
+        if final? and rest != "" do
+          {_, final_output_acc} = process_segments([rest], new_output_acc, opts)
+          {"", final_output_acc}
+        else
+          {rest, new_output_acc}
+        end
     end
+  end
+
+  defp process_segments(segments, output_acc, opts) do
+    new_output_acc =
+      Enum.reduce(segments, output_acc, fn segment, acc ->
+        case parse_progress(segment) do
+          {:ok, progress} ->
+            if callback = opts[:on_progress], do: callback.(progress)
+            acc
+
+          :error ->
+            acc <> segment <> "\n"
+        end
+      end)
+
+    {segments, new_output_acc}
   end
 
   defp find_last_delimiter(data) do
@@ -181,9 +207,9 @@ defmodule Sunxi.FEL do
   end
 
   defp parse_progress(line) do
-    # 1: percentage, 2: speed (ETA case), 3: ETA, 4: total_kb, 5: speed (Done case)
+    # 1: percentage, 2: speed (ETA case), 3: ETA, 4: speed (Done case)
     regex =
-      ~r/^\s*(\d+)%\s+\[(?:[=\s]+)\]\s+(?:([\d\.]+)\s+kB\/s,\s+ETA\s+([\d:]+)|([\d\.]+)\s+kB,\s+([\d\.]+)\s+kB\/s)\s*$/
+      ~r/^\s*(\d+)%\s+\[(?:[=\s]+)\]\s+(?:([\d\.]+)\s+kB\/s,\s+ETA\s+([\d:]+)|[\d\.]+\s+kB,\s+([\d\.]+)\s+kB\/s)\s*$/
 
     case Regex.run(regex, String.trim_trailing(line)) do
       [_, percentage, speed_eta, eta] ->
@@ -191,17 +217,15 @@ defmodule Sunxi.FEL do
          %{
            percentage: String.to_integer(percentage),
            speed: parse_float(speed_eta),
-           eta: String.trim(eta),
-           total_kb: nil
+           eta: String.trim(eta)
          }}
 
-      [_, percentage, "", "", total_kb, speed_done] ->
+      [_, percentage, "", "", speed_done] ->
         {:ok,
          %{
            percentage: String.to_integer(percentage),
            speed: parse_float(speed_done),
-           eta: nil,
-           total_kb: parse_float(total_kb)
+           eta: nil
          }}
 
       _ ->

@@ -7,10 +7,10 @@ part of the Elixir build process.
 
 ## Vendoring
 
-This project vendors the `sunxi-tools` source code (git commit hash
-`7540cb235691be94ac5ef0181a73dd929949fc4e`) from the
-[linux-sunxi/sunxi-tools](https://github.com/linux-sunxi/sunxi-tools)
-repository.
+This project vendors the `sunxi-tools` source code. It uses a fork located at
+[gworkman/sunxi-tools](https://github.com/gworkman/sunxi-tools) which includes
+support for progress reporting during SPL transfers (a feature currently pending
+in a PR to the main repository).
 
 ## Dependencies
 
@@ -39,15 +39,14 @@ To list connected Allwinner devices:
 
 ```elixir
 iex> Sunxi.FEL.list_devices()
-{:ok,
- [
-   %{
-     device: "026",
-     bus: "020",
-     model: "R528",
-     sid: "93407200:7c004814:0102a04c:5c5b1cd8"
-   }
- ]}
+[
+  %Sunxi.Device{
+    device: "026",
+    bus: "020",
+    model: "R528",
+    sid: "93407200:7c004814:0102a04c:5c5b1cd8"
+  }
+]
 ```
 
 To read and write memory when a device is connected:
@@ -68,6 +67,28 @@ packaged together into one file, it will properly load both at the same time):
 ```elixir
 Sunxi.FEL.execute_spl("path/to/spl.bin")
 Sunxi.FEL.execute_uboot("path/to/u-boot.bin")
+```
+
+### Target Specific Device
+
+When multiple devices are connected, you can specify which one to target using
+the `:device` option:
+
+```elixir
+[device | _] = Sunxi.FEL.list_devices()
+Sunxi.FEL.read_memory(0x20000, 4, device: device)
+```
+
+### Progress Reporting
+
+Functions that transfer data (`write_memory/3`, `execute_spl/2`,
+`execute_uboot/2`) support an `:on_progress` callback:
+
+```elixir
+Sunxi.FEL.execute_uboot("u-boot.bin", on_progress: fn progress ->
+  IO.inspect(progress)
+  # %{percentage: 45, speed: 150.2, eta: "0:02"}
+end)
 ```
 
 If no devices are connected, you get an error:
