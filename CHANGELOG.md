@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.5 (2026-04-13)
+
+- Refactor `Sunxi.FEL` to use `Port` for progress reporting
+- Add `:on_progress` callback to memory and execution functions
+- Use `sunxi-tools` fork with SPL progress support
+- Update documentation to reflect `sunxi-fel` behavior
+
 ## v0.1.4 (2026-03-25)
 
 - Improve docs

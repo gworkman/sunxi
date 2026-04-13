@@ -2,7 +2,7 @@ defmodule Sunxi.MixProject do
   use Mix.Project
 
   @github_org "gworkman"
-  @version "0.1.4"
+  @version "0.1.5"
 
   def project do
     [
