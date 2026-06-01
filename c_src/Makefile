@@ -10,8 +10,11 @@ DEPENDENCIES = libusb-1.0 zlib
 # libfdt detection
 # 1. allow user-provided overrides
 # 2. Try pkg-config
-# 3. Try Homebrew on macOS
-# 4. Fallback to common locations
+# 3. Try Homebrew on macOS (host only)
+# 4. Fallback to common locations (host only)
+
+# Default to host if not provided
+MIX_TARGET ?= host
 
 # Initialize variables if not already set by environment
 LIBFDT_CFLAGS ?=
@@ -28,36 +31,46 @@ ifeq ($(LIBFDT_CFLAGS),)
 	endif
 endif
 
-# Try Homebrew on macOS if still not found
-ifeq ($(LIBFDT_CFLAGS),)
-	ifeq ($(UNAME_S),Darwin)
-		BREW_PREFIX := $(shell brew --prefix dtc 2>/dev/null)
-		ifneq ($(BREW_PREFIX),)
-			LIBFDT_CFLAGS = -I$(BREW_PREFIX)/include
-			LIBFDT_LIBS = -L$(BREW_PREFIX)/lib -lfdt
+# If we are building for the host, attempt fallback discovery
+ifeq ($(MIX_TARGET),host)
+	# Try Homebrew on macOS if still not found
+	ifeq ($(LIBFDT_CFLAGS),)
+		ifeq ($(UNAME_S),Darwin)
+			BREW_PREFIX := $(shell brew --prefix dtc 2>/dev/null)
+			ifneq ($(BREW_PREFIX),)
+				LIBFDT_CFLAGS = -I$(BREW_PREFIX)/include
+				LIBFDT_LIBS = -L$(BREW_PREFIX)/lib -lfdt
+			endif
 		endif
 	endif
-endif
 
-# Final fallbacks
-ifeq ($(LIBFDT_CFLAGS),)
+	# Final fallbacks for host
+	ifeq ($(LIBFDT_CFLAGS),)
+		ifeq ($(UNAME_S),Darwin)
+			# Default to Intel Homebrew path as a last resort on macOS
+			DTC_PREFIX ?= /usr/local/opt/dtc
+			LIBFDT_CFLAGS ?= -I$(DTC_PREFIX)/include
+			LIBFDT_LIBS ?= -L$(DTC_PREFIX)/lib -lfdt
+		else
+			# On Linux, assume it's in standard paths
+			LIBFDT_CFLAGS ?=
+			LIBFDT_LIBS ?= -lfdt
+		endif
+	endif
+
+	# Check function to verify libfdt.h existence on host
 	ifeq ($(UNAME_S),Darwin)
-		# Default to Intel Homebrew path as a last resort on macOS
-		DTC_PREFIX ?= /usr/local/opt/dtc
-		LIBFDT_CFLAGS ?= -I$(DTC_PREFIX)/include
-		LIBFDT_LIBS ?= -L$(DTC_PREFIX)/lib -lfdt
+	    CHECK_LIBFDT = (ls $(DTC_PREFIX)/include/libfdt.h > /dev/null 2>&1 || (echo "Error: libfdt.h not found. Please install 'dtc' (brew install dtc)"; exit 1))
 	else
-		# On Linux, assume it's in standard paths
+	    CHECK_LIBFDT = (ls /usr/include/libfdt.h > /dev/null 2>&1 || ls /usr/local/include/libfdt.h > /dev/null 2>&1) || (echo "Error: libfdt.h not found. Please install 'libfdt-dev' (sudo apt-get install libfdt-dev)"; exit 1)
+	endif
+else
+	# Cross-compiling: if pkg-config failed, provide a generic fallback for cross-toolchain
+	ifeq ($(LIBFDT_CFLAGS),)
 		LIBFDT_CFLAGS ?=
 		LIBFDT_LIBS ?= -lfdt
 	endif
-endif
-
-# Check function to verify libfdt.h existence
-ifeq ($(UNAME_S),Darwin)
-    CHECK_LIBFDT = (ls $(DTC_PREFIX)/include/libfdt.h > /dev/null 2>&1 || (echo "Error: libfdt.h not found. Please install 'dtc' (brew install dtc)"; exit 1))
-else
-    CHECK_LIBFDT = (ls /usr/include/libfdt.h > /dev/null 2>&1 || ls /usr/local/include/libfdt.h > /dev/null 2>&1) || (echo "Error: libfdt.h not found. Please install 'libfdt-dev' (sudo apt-get install libfdt-dev)"; exit 1)
+	CHECK_LIBFDT = true
 endif
 
 .PHONY: all clean check_deps install
