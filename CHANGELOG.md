@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.1 (2026-06-01)
+
+- Isolate C build artifacts by building in the Mix build directory instead of
+  the source tree
+- Fix build collisions when switching between different `MIX_TARGET`
+  environments
+
 ## v0.2.0 (2026-06-01)
 
 - Fix cross-compilation errors when building for Nerves targets
