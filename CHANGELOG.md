@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.0 (2026-06-01)
+
+- Fix cross-compilation errors when building for Nerves targets
+- Improve libfdt discovery to automatically detect Homebrew paths on macOS hosts
+- Support conditional library path discovery based on `MIX_TARGET`
+
 ## v0.1.5 (2026-04-13)
 
 - Refactor `Sunxi.FEL` to use `Port` for progress reporting
