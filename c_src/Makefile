@@ -3,6 +3,8 @@ SUNXI_TOOLS_DIR = sunxi-tools
 
 # MIX_APP_PATH is provided by elixir_make
 PREFIX = $(MIX_APP_PATH)/priv
+OBJDIR = $(MIX_APP_PATH)/obj
+BUILD_DIR = $(OBJDIR)/sunxi-tools
 
 # Dependencies to check via pkg-config
 DEPENDENCIES = libusb-1.0 zlib
@@ -88,10 +90,12 @@ check_deps:
 
 $(PREFIX)/bin/sunxi-fel: $(SUNXI_TOOLS_DIR)/Makefile
 	mkdir -p $(PREFIX)/bin
-	# Inject detected flags into the sub-make via CFLAGS and LIBS
-	$(MAKE) -C $(SUNXI_TOOLS_DIR) CFLAGS+="$(LIBFDT_CFLAGS)" LIBS+="$(LIBFDT_LIBS)"
-	cp $(SUNXI_TOOLS_DIR)/sunxi-fel $(PREFIX)/bin/
+	mkdir -p $(OBJDIR)
+	rm -rf $(BUILD_DIR)
+	cp -R $(SUNXI_TOOLS_DIR) $(BUILD_DIR)
+	$(MAKE) -C $(BUILD_DIR) clean
+	$(MAKE) -C $(BUILD_DIR) CFLAGS+="$(LIBFDT_CFLAGS)" LIBS+="$(LIBFDT_LIBS)" sunxi-fel
+	cp $(BUILD_DIR)/sunxi-fel $(PREFIX)/bin/
 
 clean:
-	$(MAKE) -C $(SUNXI_TOOLS_DIR) clean
-	rm -rf $(PREFIX)/bin/sunxi-fel
+	rm -rf $(PREFIX)/bin/sunxi-fel $(OBJDIR)
