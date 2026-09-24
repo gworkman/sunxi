@@ -253,12 +253,37 @@ defmodule Sunxi.FEL do
   end
 
   defp get_binary_path do
-    default_bin_path =
-      :sunxi
-      |> :code.priv_dir()
-      |> Path.join("bin/#{@binary_name}")
+    path = Application.get_env(:sunxi, :sunxi_fel_path) || default_binary_path()
 
-    Application.get_env(:sunxi, :sunxi_fel_path) || default_bin_path
+    if File.exists?(path), do: path, else: raise(missing_binary_message(path))
+  end
+
+  defp default_binary_path do
+    :sunxi
+    |> :code.priv_dir()
+    |> Path.join("bin/#{@binary_name}")
+  end
+
+  defp missing_binary_message(path) do
+    """
+    #{@binary_name} is missing.
+
+        expected at: #{path}
+
+    The native build has not produced it. Either `make` failed — it needs
+    libusb, zlib and libfdt — or it was skipped because an earlier failed build
+    left this dependency looking compiled.
+
+    Rebuilding will say which:
+
+        mix deps.compile sunxi --force
+
+    The libraries it builds against:
+
+        macOS   brew install libusb dtc zlib pkg-config
+        Debian  sudo apt-get install libusb-1.0-0-dev libfdt-dev zlib1g-dev \\
+                  pkg-config device-tree-compiler
+    """
   end
 
   defp format_address(address) do
