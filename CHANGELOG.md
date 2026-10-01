@@ -1,10 +1,14 @@
 # Changelog
 
-## Unreleased
+## v0.2.2 (2026-10-01)
 
 - Fix libfdt detection on Apple Silicon Macs, where `brew install dtc` was not
   enough to compile without manually setting `DTC_PREFIX`
 - Verify libfdt using the detected compiler flags instead of a fixed path
+- Raise a descriptive error when the `sunxi-fel` binary is missing, explaining
+  how to rebuild it and which system libraries it needs
+- Fix `sunxi-fel` rejecting devices with USB bus or device number 0, both when
+  selected by `--dev` and by `--sid`
 
 ## v0.2.1 (2026-06-01)
 
