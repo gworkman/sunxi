@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Fix libfdt detection on Apple Silicon Macs, where `brew install dtc` was not
+  enough to compile without manually setting `DTC_PREFIX`
+- Verify libfdt using the detected compiler flags instead of a fixed path
+
 ## v0.2.1 (2026-06-01)
 
 - Isolate C build artifacts by building in the Mix build directory instead of
